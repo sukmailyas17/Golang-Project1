@@ -7,7 +7,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func (app *application) Routes() http.Handler {
+func (app *application) routes() http.Handler {
 	// create a router mux
 	mux := chi.NewRouter()
 
@@ -15,6 +15,9 @@ func (app *application) Routes() http.Handler {
 	mux.Use(app.EnableCORS)
 
 	mux.Get("/", app.Home)
+
+	mux.Post("/authenticate", app.authenticate)
+	mux.Get("/refresh", app.refreshToken)
 
 	mux.Get("/movies", app.AllMovies)
 
