@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -26,7 +28,7 @@ type jwtUser struct {
 }
 
 type TokenPairs struct {
-	Token        string `json:"acces_token"`
+	Token        string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }
 
@@ -47,7 +49,7 @@ func (j *Auth) GenerateTokenPair(user *jwtUser) (TokenPairs, error) {
 	claims["iat"] = time.Now().UTC().Unix()
 	claims["typ"] = "JWT"
 
-	// Set the expiry of JWT
+	// Set the expiry for JWT
 	claims["exp"] = time.Now().UTC().Add(j.TokenExpiry).Unix()
 
 	// Create a signed token
@@ -62,7 +64,7 @@ func (j *Auth) GenerateTokenPair(user *jwtUser) (TokenPairs, error) {
 	refreshTokenClaims["sub"] = fmt.Sprint(user.ID)
 	refreshTokenClaims["iat"] = time.Now().UTC().Unix()
 
-	//Set the expiry for the refresh token
+	// Set the expiry for the refresh token
 	refreshTokenClaims["exp"] = time.Now().UTC().Add(j.RefreshExpiry).Unix()
 
 	// Create signed refresh token
@@ -71,7 +73,7 @@ func (j *Auth) GenerateTokenPair(user *jwtUser) (TokenPairs, error) {
 		return TokenPairs{}, err
 	}
 
-	// Create TokenPairs and populated with signed tokens
+	// Create TokenPairs and populate with signed tokens
 	var tokenPairs = TokenPairs{
 		Token:        signedAccesToken,
 		RefreshToken: signedRefreshToken,
@@ -79,12 +81,11 @@ func (j *Auth) GenerateTokenPair(user *jwtUser) (TokenPairs, error) {
 
 	// Return TokenPairs
 	return tokenPairs, nil
-
 }
 
 func (j *Auth) GetRefreshCookie(refreshToken string) *http.Cookie {
 	return &http.Cookie{
-		Name:     j.CookieDomain,
+		Name:     j.CookieName,
 		Path:     j.CookiePath,
 		Value:    refreshToken,
 		Expires:  time.Now().Add(j.RefreshExpiry),
@@ -98,7 +99,7 @@ func (j *Auth) GetRefreshCookie(refreshToken string) *http.Cookie {
 
 func (j *Auth) GetExpiredRefreshCookie() *http.Cookie {
 	return &http.Cookie{
-		Name:     j.CookieDomain,
+		Name:     j.CookieName,
 		Path:     j.CookiePath,
 		Value:    "",
 		Expires:  time.Unix(0, 0),
@@ -108,4 +109,53 @@ func (j *Auth) GetExpiredRefreshCookie() *http.Cookie {
 		HttpOnly: true,
 		Secure:   true,
 	}
+}
+
+func (j *Auth) GetTokenFromHeaderAndVerify(w http.ResponseWriter, r *http.Request) (string, *Claims, error) {
+	w.Header().Add("Vary", "Authorization")
+
+	// get auth header
+	authHeader := r.Header.Get("Authorization")
+
+	// sanity check
+	if authHeader == "" {
+		return "", nil, errors.New("no auth header")
+	}
+
+	// split the header on spaces
+	headerParts := strings.Split(authHeader, " ")
+	if len(headerParts) != 2 {
+		return "", nil, errors.New("invalid auth header")
+	}
+
+	// check to see if we have the word Bearer
+	if headerParts[0] != "Bearer" {
+		return "", nil, errors.New("invalid auth header")
+	}
+
+	token := headerParts[1]
+
+	// declare an empty claims
+	claims := &Claims{}
+
+	// parse the token
+	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(j.Secret), nil
+	})
+
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "token is expired by") {
+			return "", nil, errors.New("expired token")
+		}
+		return "", nil, err
+	}
+
+	if claims.Issuer != j.Issuer {
+		return "", nil, errors.New("invalid issuer")
+	}
+
+	return token, claims, nil
 }
