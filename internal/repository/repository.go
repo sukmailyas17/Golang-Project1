@@ -14,4 +14,5 @@ type DatabaseRepo interface {
 	OneMovieForEdit(id int) (*models.Movie, []*models.Genre, error)
 	OneMovie(id int) (*models.Movie, error)
 	AllGenres() ([]*models.Genre, error)
+	InsertMovie(movie models.Movie) (int, error)
 }
