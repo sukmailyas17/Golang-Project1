@@ -65,7 +65,7 @@ func (j *Auth) GenerateTokenPair(user *jwtUser) (TokenPairs, error) {
 	refreshTokenClaims["iat"] = time.Now().UTC().Unix()
 
 	// Set the expiry for the refresh token
-	refreshTokenClaims["exp"] = time.Now().UTC().Add(j.RefreshExpiry).Unix()
+	refreshTokenClaims["exp"] = time.Now().UTC().Add(8 * time.Hour).Unix()
 
 	// Create signed refresh token
 	signedRefreshToken, err := refreshToken.SignedString([]byte(j.Secret))
@@ -88,7 +88,7 @@ func (j *Auth) GetRefreshCookie(refreshToken string) *http.Cookie {
 		Name:     j.CookieName,
 		Path:     j.CookiePath,
 		Value:    refreshToken,
-		Expires:  time.Now().Add(j.RefreshExpiry),
+		Expires:  time.Now().Add(8*time.Hour),
 		MaxAge:   int(j.RefreshExpiry.Seconds()),
 		SameSite: http.SameSiteStrictMode,
 		Domain:   j.CookieDomain,
@@ -102,7 +102,7 @@ func (j *Auth) GetExpiredRefreshCookie() *http.Cookie {
 		Name:     j.CookieName,
 		Path:     j.CookiePath,
 		Value:    "",
-		Expires:  time.Unix(0, 0),
+		Expires:  time.Now().Add(8 * time.Hour),
 		MaxAge:   -1,
 		SameSite: http.SameSiteStrictMode,
 		Domain:   j.CookieDomain,

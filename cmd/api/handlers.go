@@ -207,6 +207,7 @@ func (app *application) InsertMovie(w http.ResponseWriter, r *http.Request) {
 
 	err := app.readJSON(w, r, &movie)
 	if err != nil {
+		log.Println("readjosn", err)
 		app.errorJSON(w, err)
 		return
 	}
@@ -219,6 +220,7 @@ func (app *application) InsertMovie(w http.ResponseWriter, r *http.Request) {
 
 	newID, err := app.DB.InsertMovie(movie)
 	if err != nil {
+		log.Println("insertmovie", err)
 		app.errorJSON(w, err)
 		return
 	}
@@ -228,6 +230,7 @@ func (app *application) InsertMovie(w http.ResponseWriter, r *http.Request) {
 	err = app.DB.UpdateMovieGenres(newID, movie.GenresArray)
 	if err != nil {
 		app.errorJSON(w, err)
+		log.Println("updatemoviesgenre", err)
 		return
 	}
 

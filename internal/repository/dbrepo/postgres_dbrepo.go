@@ -4,6 +4,7 @@ import (
 	"backend/internal/models"
 	"context"
 	"database/sql"
+	"log"
 	"time"
 )
 
@@ -94,7 +95,7 @@ func (m *PostgresDBRepo) OneMovie(id int) (*models.Movie, error) {
 	// get genres, if any
 	query = `select g.id, g.genre from movies_genres mg
 		left join genres g on (mg.genre_id = g.id)
-		where mg.movie_id = $1
+		where mg.movies_id = $1
 		order by g.genre`
 
 	rows, err := m.DB.QueryContext(ctx, query, id)
@@ -153,7 +154,7 @@ func (m *PostgresDBRepo) OneMovieForEdit(id int) (*models.Movie, []*models.Genre
 	// get genres, if any
 	query = `select g.id, g.genre from movies_genres mg
 		left join genres g on (mg.genre_id = g.id)
-		where mg.movie_id = $1
+		where mg.movies_id = $1
 		order by g.genre`
 
 	rows, err := m.DB.QueryContext(ctx, query, id)
@@ -313,9 +314,11 @@ func (m *PostgresDBRepo) InsertMovie(movie models.Movie) (int, error) {
 		movie.MPAARating,
 		movie.CreatedAt,
 		movie.UpdatedAt,
+		movie.Image,
 	).Scan(&newID)
 
 	if err != nil {
+		log.Println("repo insertmovie:", err)
 		return 0, err
 	}
 	return newID, nil
@@ -325,7 +328,7 @@ func (m *PostgresDBRepo) UpdateMovieGenres(id int, genreIDs []int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
-	stmt := `delete from movies_genres where movie_id = $1`
+	stmt := `delete from movies_genres where movies_id = $1`
 
 	_, err := m.DB.ExecContext(ctx, stmt, id)
 	if err != nil {

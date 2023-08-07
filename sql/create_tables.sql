@@ -69,7 +69,7 @@ CREATE TABLE public.movies (
 
 CREATE TABLE public.movies_genres (
     id integer NOT NULL,
-    movie_id integer,
+    movies_id integer,
     genre_id integer
 );
 
@@ -167,7 +167,7 @@ COPY public.movies (id, title, release_date, runtime, mpaa_rating, description, 
 -- Data for Name: movies_genres; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.movies_genres (id, movie_id, genre_id) FROM stdin;
+COPY public.movies_genres (id, movies_id, genre_id) FROM stdin;
 1	1	5
 2	1	12
 3	2	5
@@ -255,11 +255,11 @@ ALTER TABLE ONLY public.movies_genres
 
 
 --
--- Name: movies_genres movies_genres_movie_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: movies_genres movies_genres_movies_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.movies_genres
-    ADD CONSTRAINT movies_genres_movie_id_fkey FOREIGN KEY (movie_id) REFERENCES public.movies(id) ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD CONSTRAINT movies_genres_movies_id_fkey FOREIGN KEY (movies_id) REFERENCES public.movies(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
